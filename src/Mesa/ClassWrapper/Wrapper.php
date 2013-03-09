@@ -63,6 +63,19 @@ class Wrapper
 
     }
 
+    protected function getArgs(\ReflectionMethod $methodRefl)
+    {
+        if ($methodRefl->getNumberOfParameters() == 0) {
+            return array();
+        }
+
+        foreach ($methodRefl->getParameters() as $arg) {
+                $parameter[] = $arg;
+        }
+
+        return $parameter;
+    }
+
     protected function prepareArgs(\ReflectionMethod $methodRefl)
     {
         if ($methodRefl->getNumberOfParameters() == 0) {
@@ -70,13 +83,13 @@ class Wrapper
         }
 
         $parameter = array();
-        foreach ($methodRefl->getParameters() as $arg) {
+        foreach ($this->getArgs($methodRefl) as $arg) {
             try {
                 $parameter[] = $this->getParam($arg->getName());
             } catch (\Exception $e) {
                 if (!$arg->isOptional()) {
                     throw new \Exception(
-                        'Parameter [' . $arg->getName() . '] for Class [' . $this->classRefl->getNamespaceName() . '] not found'
+                        'Parameter [' . $arg->getName() . '] for Class [' . $this->namespace . '] not found'
                     );
                 }
             }
@@ -111,5 +124,19 @@ class Wrapper
         }
 
         return $this->parameter[$name];
+    }
+
+    public function getMethodParams($method)
+    {
+        $methodRefl = new \ReflectionMethod($this->namespace, $method);
+        $parameter = array();
+        foreach ($this->getArgs($methodRefl) as $arg) {
+            $parameter[] = array(
+                'name' => $arg->name,
+                'reflParam' => $arg
+            );
+        }
+
+        return $parameter;
     }
 }

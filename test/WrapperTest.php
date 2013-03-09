@@ -110,6 +110,26 @@ class WrapperTest extends \PHPUnit_Framework_TestCase
         $subject = new Wrapper('\Mesa\ClassWrapper\NoConstructor');
         $this->assertTrue($subject->call('testMe'));
     }
+
+    public function testGetAllWithTypeHint()
+    {
+        $subject = new Wrapper('\Mesa\ClassWrapper\Testing');
+        $result = $subject->getMethodParams('withTypeHint');
+        $this->assertSame(
+            'class1',
+            $result[0]["name"]
+        );
+    }
+
+    public function testGetAllWithEmptyArgs()
+    {
+        $subject = new Wrapper('\Mesa\ClassWrapper\Testing');
+        $result = $subject->getMethodParams('noParameter');
+        $this->assertSame(
+            array(),
+            $result
+        );
+    }
 }
 
 class Testing
@@ -126,7 +146,7 @@ class Testing
         return $param1 + $param2 + $param3 + $this->testValue;
     }
 
-    public function withTypeHint(Mesa\ClassWrapper\Testing $class1, Array $array, Object $object)
+    public function withTypeHint(\Mesa\ClassWrapper\Testing $class1, Array $array, $object)
     {
         return true;
     }
