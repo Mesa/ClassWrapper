@@ -1,0 +1,24 @@
+{
+    "name":"mesa/classwrapper",
+    "type": "library",
+    "description": "Class Wrapper",
+    "keywords": ["Class Wrapper"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Daniel Langemann",
+            "email": "daniel.langemann@gmx.de",
+            "homepage": "http://daniel.langemann.org",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=5.3.0"
+    },
+    "autoload": {
+        "psr-0": {
+            "Mesa\\ClassWrapper\\": "src/"
+        }
+    }
+
+}
