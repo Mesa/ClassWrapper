@@ -14,7 +14,7 @@ class Wrapper
     public function __construct($class)
     {
         if (empty($class) || (!is_string($class) && !is_object($class))) {
-            throw new \Exception('Type is not supported');
+            throw new \Exception('Type is not supported. Please use Namespace or Object');
         }
 
         if (is_string($class)) {
@@ -59,8 +59,8 @@ class Wrapper
         if (!$args) {
             return $methodRefl->invoke($this->object);
         }
-        return $methodRefl->invokeArgs($this->object, $args);
 
+        return $methodRefl->invokeArgs($this->object, $args);
     }
 
     protected function getArgs(\ReflectionMethod $methodRefl)
@@ -94,6 +94,7 @@ class Wrapper
                 }
             }
         }
+
         return $parameter;
     }
 
