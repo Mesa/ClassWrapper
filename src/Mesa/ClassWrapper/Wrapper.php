@@ -2,15 +2,24 @@
 
 namespace Mesa\ClassWrapper;
 
+/**
+ * Class Wrapper
+ * @package Mesa\ClassWrapper
+ */
 class Wrapper
 {
 
     protected $object = null;
     protected $namespace = null;
     protected $parameter = array();
-    protected $classRefl = null;
+    protected $class = null;
 
 
+    /**
+     * @param string|object $class
+     *
+     * @throws \Exception
+     */
     public function __construct($class)
     {
         if (empty($class) || (!is_string($class) && !is_object($class))) {
@@ -22,122 +31,163 @@ class Wrapper
         }
 
         if (is_object($class)) {
-            $this->object = $class;
-            $this->classRefl = new \ReflectionObject($class);
-            $this->namespace = $this->classRefl->getNamespaceName();
+            $this->object    = $class;
+            $this->class     = new \ReflectionObject($class);
+            $this->namespace = $this->class->getNamespaceName();
         }
     }
 
+    /**
+     * @param string $name
+     * @param string $value
+     *
+     * @return $this
+     * @throws \Exception
+     */
     public function addParam($name, $value = "")
     {
         if (empty($name)) {
             throw new \Exception('Empty argument name');
         }
         $this->parameter[$name] = $value;
+
         return $this;
     }
 
-    public function call($method, $args = array())
+    /**
+     * @param string $methodName
+     * @param array $param
+     *
+     * @return object
+     * @throws \Exception
+     */
+    public function call($methodName, $param = array())
     {
         if ($this->object == null) {
             $this->object = $this->createClass();
         }
 
-        foreach ($args as $key => $value) {
+        foreach ($param as $key => $value) {
             $this->addParam($key, $value);
         }
 
-        if (!$this->classRefl->hasMethod($method)) {
+        if (!$this->class->hasMethod($methodName)) {
             throw new \Exception(
-                'Class [' . $this->classRefl->getNamespaceName() . '] has no Method [' . $method .']'
+                'Class [' . $this->class->getNamespaceName() . '] has no Method [' . $methodName . ']'
             );
         }
 
-        $methodRefl = new \ReflectionMethod($this->object, $method);
-        $args = $this->prepareArgs($methodRefl);
+        $method = new \ReflectionMethod($this->object, $methodName);
+        $param  = $this->prepareArgs($method);
 
-        if (!$args) {
-            return $methodRefl->invoke($this->object);
+        if (!$param) {
+            return $method->invoke($this->object);
         }
 
-        return $methodRefl->invokeArgs($this->object, $args);
+        return $method->invokeArgs($this->object, $param);
     }
 
-    protected function getArgs(\ReflectionMethod $methodRefl)
+    /**
+     * @param \ReflectionMethod $method
+     *
+     * @return array
+     */
+    protected function getArgs(\ReflectionMethod $method)
     {
-        if ($methodRefl->getNumberOfParameters() == 0) {
+        if ($method->getNumberOfParameters() == 0) {
             return array();
         }
 
-        foreach ($methodRefl->getParameters() as $arg) {
-                $parameter[] = $arg;
+        $parameter = array();
+        foreach ($method->getParameters() as $arg) {
+            $parameter[] = $arg;
         }
 
         return $parameter;
     }
 
-    protected function prepareArgs(\ReflectionMethod $methodRefl)
+    /**
+     * @param \ReflectionMethod $method
+     *
+     * @return array
+     * @throws \Exception
+     */
+    protected function prepareArgs(\ReflectionMethod $method)
     {
-        if ($methodRefl->getNumberOfParameters() == 0) {
-            return false;
+        if ($method->getNumberOfParameters() == 0) {
+            return array();
         }
 
-        $parameter = array();
-        foreach ($this->getArgs($methodRefl) as $arg) {
+        $parameters = array();
+        foreach ($this->getArgs($method) as $param) {
             try {
-                $parameter[] = $this->getParam($arg->getName());
+                $parameters[] = $this->getParam($param->getName());
             } catch (\Exception $e) {
-                if (!$arg->isOptional()) {
+                if (!$param->isOptional()) {
                     throw new \Exception(
-                        'Parameter [' . $arg->getName() . '] for Class [' . $this->namespace . '] not found'
+                        'Parameter [' . $param->getName() . '] for Class [' . $this->namespace . '] not found'
                     );
                 }
             }
         }
 
-        return $parameter;
+        return $parameters;
     }
 
+    /**
+     * @return object
+     */
     protected function createClass()
     {
-        $this->classRefl = new \ReflectionClass($this->namespace);
+        $this->class = new \ReflectionClass($this->namespace);
 
-        if (!$this->classRefl->hasMethod("__construct")) {
-            return $this->classRefl->newInstance();
+        if (!$this->class->hasMethod("__construct")) {
+            return $this->class->newInstance();
         }
-        
-        $methodRefl = $this->classRefl->getMethod('__construct');
-        $args = $this->prepareArgs($methodRefl);
+
+        $method = $this->class->getMethod('__construct');
+        $args   = $this->prepareArgs($method);
 
         if (!$args) {
-            return $this->classRefl->newInstance();
+            return $this->class->newInstance();
         }
 
-        return $this->classRefl->newInstanceArgs($args);
+        return $this->class->newInstanceArgs($args);
     }
 
+    /**
+     * @param string $name
+     *
+     * @return mixed
+     * @throws \Exception
+     */
     public function getParam($name)
     {
         if (!isset($this->parameter[$name])) {
             throw new \Exception(
-                'Parameter [' . $name . '] for Class [' . $this->namespace . '] not found'
+                'Parameter [' . $name . '] for Class [' . $this->namespace . '] not found.'
             );
         }
 
         return $this->parameter[$name];
     }
 
-    public function getMethodParams($method)
+    /**
+     * @param string $name
+     *
+     * @return array
+     */
+    public function getMethodParams($name)
     {
-        $methodRefl = new \ReflectionMethod($this->namespace, $method);
-        $parameter = array();
-        foreach ($this->getArgs($methodRefl) as $arg) {
-            $parameter[] = array(
-                'name' => $arg->name,
-                'reflParam' => $arg
+        $method    = new \ReflectionMethod($this->namespace, $name);
+        $parameters = array();
+        foreach ($this->getArgs($method) as $argument) {
+            $parameters[] = array(
+                'name'      => $argument->name,
+                'argument' => $argument
             );
         }
 
-        return $parameter;
+        return $parameters;
     }
 }
